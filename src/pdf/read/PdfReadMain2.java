@@ -14,12 +14,15 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.PDPageTree;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.common.PDStream;
+import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 
-public class PdfReadMain {
+public class PdfReadMain2 {
 
 	public static void main(String args[]) {
-		new PdfReadMain().process();
+		new PdfReadMain2().process();
 	}
 
 	private void process() {
@@ -30,11 +33,11 @@ public class PdfReadMain {
 
 			PDDocument document = PDDocument.load(file);
 
-			searchReplace("PFULLER", "CHUCK", "UTF-8", false, document);
+			// searchReplace("PFULLER", "CHUCK", "UTF-8", false, document);
 
-			// addToDoc(document);
+			addToDoc(document);
 
-			bufferHeaders(document);
+			findHeaders();
 
 //			List<COSObject> list = document.getDocument().getObjects();
 //
@@ -67,6 +70,8 @@ public class PdfReadMain {
 			PDFStreamParser parser = new PDFStreamParser(page);
 			parser.parse();
 			List tokens = parser.getTokens();
+			tokens.add(0, new COSString("What????"));
+			// tokens.add(0, PDFObjectStreamParser("What????"));
 			for (int j = 0; j < tokens.size(); j++) {
 				Object next = tokens.get(j);
 				System.out.println(next);
@@ -102,14 +107,22 @@ public class PdfReadMain {
 					}
 				}
 			}
+			// now that the tokens are updated we will replace the page content stream.
+//			PDStream updatedStream = new PDStream(doc);
+//			OutputStream out = updatedStream.createOutputStream();
+//			ContentStreamWriter tokenWriter = new ContentStreamWriter(out);
+//			tokenWriter.writeTokens(tokens);
+//			out.close();
+//			page.setContents(updatedStream);
 
 			PDStream updatedStream = new PDStream(doc);
 			OutputStream out = updatedStream.createOutputStream();
+			// FileOutputStream fos = new FileOutputStream("chuck.pdf");
 			ContentStreamWriter tokenWriter = new ContentStreamWriter(out);
 			tokenWriter.writeTokens(tokens);
+			// tokenWriter.writeToken(new PDTe("What????"));
 
 			out.close();
-
 			page.setContents(updatedStream);
 		}
 
@@ -117,7 +130,7 @@ public class PdfReadMain {
 		// doc.close();
 	}
 
-	public void bufferHeaders(PDDocument x) {
+	public void addToDoc(PDDocument x) {
 
 		try {
 
@@ -125,29 +138,42 @@ public class PdfReadMain {
 
 			PDDocument document = PDDocument.load(file);
 
-			for (int i = 0; i < document.getDocumentCatalog().getPages().getCount(); i++) {
+			PDPage page = (PDPage) document.getDocumentCatalog().getPages().get(0);
 
-				PDPage page = (PDPage) document.getDocumentCatalog().getPages().get(i);
+			PDPageContentStream cos = new PDPageContentStream(document, page, PDPageContentStream.AppendMode.PREPEND,
+					true);
 
-				float[] headerCoordinates = PDFTextLocator.getCoordiantes(document, "<------", i);
+			PDFont fontPlain = PDType1Font.COURIER;
+			// System.out.println("Font height:" + fontPlain.getBoundingBox().getHeight());
+			PDRectangle rect = page.getMediaBox();
 
-				// if header not found continue next page
-				if (headerCoordinates == null || headerCoordinates.length == 0 || headerCoordinates[0] == -1) {
-					continue;
-				}
+			// System.out.println(rect.getWidth() + ":" + rect.getHeight());
 
-				PDPageContentStream cos = new PDPageContentStream(document, page,
-						PDPageContentStream.AppendMode.PREPEND, true);
+			// Define a text content stream using the selected font, move the cursor and
 
-				// draw a line up to header
-				cos.moveTo(0, headerCoordinates[1]);
-				cos.lineTo(headerCoordinates[0], headerCoordinates[1]);
-				cos.setLineWidth(.5f);
-				cos.setLineCapStyle(1);
-				cos.stroke();
+			// draw some text
 
-				cos.close();
-			}
+			// cos.beginText();
+			cos.setFont(fontPlain, 8);
+			// cos.newLineAtOffset(0, 660);
+			// System.out.println(rect.getHeight() - (6 * 8));
+			// cos.newLineAtOffset(0, 672);
+			// cos.showText("<-------------------------------->");
+			// cos.drawLine(0, 672, 168, 672);
+			cos.moveTo(0, 672);
+			cos.lineTo(168, 672);
+			cos.stroke();
+			// cos.endText();
+
+//			cos.beginText();
+//			cos.setFont(fontPlain, 8);
+//			System.out.println(rect.getHeight() - (7 * 8));
+//			cos.newLineAtOffset(0, rect.getHeight() - (7 * 8));
+//			// cos.newLineAtOffset(0, 671);
+//			// cos.showText("<-------------------------------->");
+//			cos.endText();
+
+			cos.close();
 
 			document.save("pdfs/chuck2.pdf");
 
@@ -156,5 +182,46 @@ public class PdfReadMain {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	public void findHeaders() {
+
+		try {
+
+			File file = new File("pdfs/GLRP04R_PFULLER_GLBT01C1_062831_2.pdf");
+
+			PDDocument document = PDDocument.load(file);
+
+			// PDPage page = (PDPage) document.getDocumentCatalog().getPages().get(0);
+
+			float[] xs = PDFTextLocator.getCoordiantes(document, "<------", 1);
+
+			for (float f : xs) {
+				System.out.println(f);
+			}
+
+//			PDFTextStripper pdfStripper = new PDFTextStripper();
+//
+//			pdfStripper.setSortByPosition(true);
+//
+//			String text = pdfStripper.getText(document);
+//
+//			String[] lines = text.split("\n");
+//
+//			for (int i = 0; i < lines.length; i++) {
+//				String line = lines[i];
+//
+//				// if (line.startsWith("<----")) {
+//				System.out.println(i + ":" + line);
+//				// }
+//			}
+
+			document.close();
+
+		} catch (Exception e) {
+
+			e.printStackTrace();
+		}
+
 	}
 }
