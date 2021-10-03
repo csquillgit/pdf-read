@@ -3,6 +3,7 @@ package pdf.read;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.DecimalFormat;
 import java.util.List;
 
 import org.apache.pdfbox.contentstream.operator.Operator;
@@ -26,7 +27,7 @@ public class PdfReadMain {
 
 		try {
 
-			File file = new File("pdfs/GLRP04R_PFULLER_GLBT01C1_062831_2.pdf");
+			File file = new File("pdfs/GLRP04R_PFULLER_GLBT01C1_062831_1.pdf");
 
 			PDDocument document = PDDocument.load(file);
 
@@ -34,7 +35,7 @@ public class PdfReadMain {
 
 			alignHeaders(document);
 
-			document.save("pdfs/chuck1.pdf");
+			document.save("pdfs/GENERATED_GLBT01C1.pdf");
 
 			document.close();
 
@@ -45,9 +46,6 @@ public class PdfReadMain {
 
 	private static void fixNumerics(PDDocument doc) throws IOException {
 
-		String search = "PFULLER";
-		String replace = "CHUCK";
-
 		PDPageTree pages = doc.getDocumentCatalog().getPages();
 		for (PDPage page : pages) {
 			PDFStreamParser parser = new PDFStreamParser(page);
@@ -55,7 +53,6 @@ public class PdfReadMain {
 			List<Object> tokens = parser.getTokens();
 			for (int j = 0; j < tokens.size(); j++) {
 				Object next = tokens.get(j);
-				System.out.println(next);
 				if (next instanceof Operator) {
 					Operator op = (Operator) next;
 					// Tj and TJ are the two operators that display strings in a PDF
@@ -64,8 +61,30 @@ public class PdfReadMain {
 					if (op.getName().equals("Tj")) {
 						COSString previous = (COSString) tokens.get(j - 1);
 						String string = previous.getString();
-						System.out.println("1:" + string);
-						string = string.replaceAll(search, replace);
+						string = string.replace("(", "");
+						string = string.replace(")", "");
+						if (string.endsWith("-")) {
+							try {
+								String tempPossibleNumber = string.replace("-", "").replace(",", "");
+								Double d = Double.valueOf(tempPossibleNumber);
+								d *= -1;
+								DecimalFormat df = new DecimalFormat("#,###.00");
+								String newString = df.format(d);
+								if (string.length() != newString.length()) {
+									StringBuffer buf = new StringBuffer();
+									for (int i = 0; i < string.length() - newString.length() - 1; i++) {
+										buf.append(" ");
+									}
+									buf.append(newString);
+									string = buf.toString();
+								} else {
+									string = newString;
+								}
+
+							} catch (Exception e) {
+							}
+						}
+
 						previous.setValue(string.getBytes());
 					} else if (op.getName().equals("TJ")) {
 						COSArray previous = (COSArray) tokens.get(j - 1);
@@ -74,8 +93,17 @@ public class PdfReadMain {
 							if (arrElement instanceof COSString) {
 								COSString cosString = (COSString) arrElement;
 								String string = cosString.getString();
-								System.out.println("2:" + string);
-								string = string.replaceAll(search, replace);
+								string = string.replace("(", "");
+								string = string.replace(")", "");
+								if (string.endsWith("-")) {
+									try {
+										String tempPossibleNumber = string.replace("-", "").replace(",", "");
+										Double d = Double.valueOf(tempPossibleNumber);
+										d *= -1;
+										string = d.toString();
+									} catch (Exception e) {
+									}
+								}
 								cosString.setValue(string.getBytes());
 							}
 						}
