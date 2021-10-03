@@ -30,43 +30,29 @@ public class PdfReadMain {
 
 			PDDocument document = PDDocument.load(file);
 
-			searchReplace("PFULLER", "CHUCK", "UTF-8", false, document);
+			fixNumerics(document);
 
-			// addToDoc(document);
+			alignHeaders(document);
 
-			bufferHeaders(document);
-
-//			List<COSObject> list = document.getDocument().getObjects();
-//
-//			for (COSObject cosObject : list) {
-//				System.out.println(cosObject.getObject().toString());
-//			}
-//
-//			PDFTextStripper pdfStripper = new PDFTextStripper();
-//
-//			pdfStripper.setSortByPosition(true);
-//
-//			String text = pdfStripper.getText(document);
-//
-//			System.out.println(text);
+			document.save("pdfs/chuck1.pdf");
 
 			document.close();
 
 		} catch (Exception e) {
-
 			e.printStackTrace();
 		}
-
 	}
 
-	private static void searchReplace(String search, String replace, String encoding, boolean replaceAll,
-			PDDocument doc) throws IOException {
+	private static void fixNumerics(PDDocument doc) throws IOException {
+
+		String search = "PFULLER";
+		String replace = "CHUCK";
 
 		PDPageTree pages = doc.getDocumentCatalog().getPages();
 		for (PDPage page : pages) {
 			PDFStreamParser parser = new PDFStreamParser(page);
 			parser.parse();
-			List tokens = parser.getTokens();
+			List<Object> tokens = parser.getTokens();
 			for (int j = 0; j < tokens.size(); j++) {
 				Object next = tokens.get(j);
 				System.out.println(next);
@@ -79,10 +65,7 @@ public class PdfReadMain {
 						COSString previous = (COSString) tokens.get(j - 1);
 						String string = previous.getString();
 						System.out.println("1:" + string);
-						if (replaceAll)
-							string = string.replaceAll(search, replace);
-						else
-							string = string.replaceFirst(search, replace);
+						string = string.replaceAll(search, replace);
 						previous.setValue(string.getBytes());
 					} else if (op.getName().equals("TJ")) {
 						COSArray previous = (COSArray) tokens.get(j - 1);
@@ -92,10 +75,7 @@ public class PdfReadMain {
 								COSString cosString = (COSString) arrElement;
 								String string = cosString.getString();
 								System.out.println("2:" + string);
-								if (replaceAll)
-									string = string.replaceAll(search, replace);
-								else
-									string = string.replaceFirst(search, replace);
+								string = string.replaceAll(search, replace);
 								cosString.setValue(string.getBytes());
 							}
 						}
@@ -113,17 +93,11 @@ public class PdfReadMain {
 			page.setContents(updatedStream);
 		}
 
-		doc.save("pdfs/chuck1.pdf");
-		// doc.close();
 	}
 
-	public void bufferHeaders(PDDocument x) {
+	public void alignHeaders(PDDocument document) {
 
 		try {
-
-			File file = new File("pdfs/GLRP04R_PFULLER_GLBT01C1_062831_2.pdf");
-
-			PDDocument document = PDDocument.load(file);
 
 			for (int i = 0; i < document.getDocumentCatalog().getPages().getCount(); i++) {
 
@@ -148,10 +122,6 @@ public class PdfReadMain {
 
 				cos.close();
 			}
-
-			document.save("pdfs/chuck2.pdf");
-
-			document.close();
 
 		} catch (Exception e) {
 			e.printStackTrace();
